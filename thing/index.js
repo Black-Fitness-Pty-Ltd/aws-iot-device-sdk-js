@@ -14,6 +14,7 @@
  */
 
 //node.js deps
+const R = require('ramda')
 var events = require('events');
 var inherits = require('util').inherits;
 
@@ -26,11 +27,19 @@ var isUndefined = require('../common/lib/is-undefined');
 //
 // private functions
 //
+const isNamedRegex = /\/shadow\/name\//;
 function buildThingShadowTopic(thingName, operation, type) {
-   if (!isUndefined(type)) {
-      return '$aws/things/' + thingName + '/shadow/' + operation + '/' + type;
-   }
-   return '$aws/things/' + thingName + '/shadow/' + operation;
+  const isNamed = isNamedRegex.test(thingName);
+  if (!isUndefined(type)) {
+    const patched = `$aws/things/${thingName}${
+      isNamed ? "/" : "/shadow/"
+    }${operation}/${type}`;
+    return patched;
+  }
+  const patched = `$aws/things/${thingName}${
+    isNamed ? "/" : "/shadow/"
+  }${operation}`;
+  return patched;
 }
 
 function isReservedTopic(topic) {
@@ -350,18 +359,26 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
          //
          // First, do a rough check to see if we should continue or not.
          //
-         if (isThingShadowTopic(topicTokens, 'subscribe')) {
+         var topicTokens = topic.split("/");
+         let thingName = topicTokens[2];
+         let normalizedTokens = topicTokens;
+         if (R.propEq(4, 'name', topicTokens)) {
+            normalizedTokens = R.remove(4, 2, topicTokens);
+            thingName = R.join('/',R.slice(2,6,topicTokens));
+         }
+
+         if (isThingShadowTopic(normalizedTokens, 'subscribe')) {
             //
             // This looks like a valid Thing topic, so see if the Thing is in the
             // registered Thing table.
             //
-            if (thingShadows.hasOwnProperty(topicTokens[2])) {
+            if (thingShadows.hasOwnProperty(thingName)) {
                //
                // This is a registered Thing, so perform message handling on it.
                //
-               that._handleMessages(topicTokens[2], // thingName
-                  topicTokens[4], // operation
-                  topicTokens[5], // status
+               that._handleMessages(thingName,
+                  normalizedTokens[4], // operation
+                  normalizedTokens[5], // status
                   payload);
             }
             //

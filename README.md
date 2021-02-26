@@ -1,3 +1,7 @@
+# Fork
+
+This is a fork from https://github.com/aws/aws-iot-device-sdk-js to add support
+for named shadows.
 ## New Version Available
 
 A new AWS IoT Device SDK is [now available](https://github.com/awslabs/aws-iot-device-sdk-js-v2). It is a complete rework, built to improve reliability, performance, and security. We invite your feedback!
